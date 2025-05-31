@@ -1,11 +1,10 @@
-// 鍵盤掃描器模組 - Row/Column 對調修正版
 module KeyPadScanner(
     input wire clk,
     input wire rst,
-    input wire [3:0] col,      // col[3:0] 輸入 (實際連接到硬體的 column)
-    output reg [3:0] row,      // row[3:0] 輸出 (實際連接到硬體的 row)
-    output reg [3:0] key_value, // 解碼後的按鍵值
-    output reg key_valid       // 按鍵有效信號
+    input wire [3:0] col,     
+    output reg [3:0] row,      
+    output reg [3:0] key_value,
+    output reg key_valid       
 );
 
 
@@ -17,8 +16,8 @@ module KeyPadScanner(
     parameter S_5 = 3'b101;  // Wait for key release
 
     reg [2:0] current_state, next_state;
-    reg [5:0] scan_code;     // 儲存掃描碼 {row[1:0], col[3:0]}
-    reg [3:0] decode_key;    // 解碼後的按鍵值
+    reg [5:0] scan_code;     
+    reg [3:0] decode_key;   
 
     // 狀態轉換 (時序邏輯)
     always @(posedge clk or posedge rst) begin
@@ -80,12 +79,12 @@ module KeyPadScanner(
     // 輸出邏輯 - row 信號
     always @(*) begin
         case (current_state)
-            S_0: row = 4'b0000;  // Idle state
-            S_1: row = 4'b1110;  // 掃描 row 0
-            S_2: row = 4'b1101;  // 掃描 row 1
-            S_3: row = 4'b1011;  // 掃描 row 2
-            S_4: row = 4'b0111;  // 掃描 row 3
-            S_5: row = 4'b0000;  // 等待放開
+            S_0: row = 4'b0000;  
+            S_1: row = 4'b1110;  
+            S_2: row = 4'b1101;  
+            S_3: row = 4'b1011;   
+            S_4: row = 4'b0111;  
+            S_5: row = 4'b0000;  
             default: row = 4'b0000;
         endcase
     end
@@ -108,16 +107,9 @@ module KeyPadScanner(
         end
     end
 
-    // 按鍵解碼邏輯 - Row/Column 對調後的布局
-    // 實際矩陣布局 (對調後)：
-    //     row[3] row[2] row[1] row[0]  <- 這些現在是輸出
-    //       1     2     3     A    <- col[0] (輸入)
-    //       4     5     6     B    <- col[1] (輸入)
-    //       7     8     9     C    <- col[2] (輸入)
-    //       *     0     #     D    <- col[3] (輸入)
     always @(*) begin
         case (scan_code)
-            // Col 0 按下時 (col[0]=0) -> col = 4'b1110
+           
             6'b001110: decode_key = 4'h1;  // col[0]=0, row[0] -> 1
             6'b011110: decode_key = 4'h2;  // col[0]=0, row[1] -> 2
             6'b101110: decode_key = 4'h3;  // col[0]=0, row[2] -> 3
@@ -155,14 +147,11 @@ module KeyPadScanner(
 
 endmodule
 
-// 7段顯示器解碼器模組 (保持不變)
 module SevenSegDecoder(
-    input wire [3:0] key_value,    // 從 KeyPadScanner 來的按鍵值
-    output reg [6:0] seg_out       // 7段顯示器輸出 {a,b,c,d,e,f,g}
+    input wire [3:0] key_value,    
+    output reg [6:0] seg_out      
 );
-    // 7段顯示器編碼
-    // seg_out = {a, b, c, d, e, f, g}
-    // 1 = 段亮起, 0 = 段熄滅 (共陰極)
+  
     
     always @(*) begin
         case (key_value)
@@ -187,28 +176,26 @@ module SevenSegDecoder(
     end
 endmodule
 
-// 完整的鍵盤掃描器與7段顯示器系統 - Row/Column 對調版
 module KeyPadWithDisplay(
     input wire clk,
     input wire rst,
-    input wire [3:0] col,          // 鍵盤 col 輸入 (實際硬體的 column)
-    output wire [3:0] row,         // 鍵盤 row 輸出 (實際硬體的 row)
-    output wire [6:0] seg_out,     // 7段顯示器輸出
-    output wire key_valid          // 按鍵有效信號
+    input wire [3:0] col,          
+    output wire [3:0] row,       
+    output wire [6:0] seg_out,     
+    output wire key_valid          
 );
     wire [3:0] key_value;
     
-    // 實例化鍵盤掃描器
     KeyPadScanner keypad_inst (
         .clk(clk),
         .rst(rst),
-        .col(col),         // 注意：輸入輸出對調
-        .row(row),         // 注意：輸入輸出對調
+        .col(col),         
+        .row(row),         
         .key_value(key_value),
         .key_valid(key_valid)
     );
     
-    // 實例化7段顯示器解碼器
+
     SevenSegDecoder seg_inst (
         .key_value(key_value),
         .seg_out(seg_out)
